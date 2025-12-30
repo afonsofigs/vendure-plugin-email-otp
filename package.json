@@ -34,7 +34,8 @@
 		"test:watch": "vitest",
 		"coverage": "vitest run --coverage && make-coverage-badge",
 		"build": "rimraf dist && tsc",
-		"postbuild": "cp -R ./src/template dist"
+		"postbuild": "cp -R ./src/template dist",
+		"prepare": "pnpm build"
 	},
 	"type": "module",
 	"dependencies": {
