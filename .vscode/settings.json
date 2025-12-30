@@ -1,7 +1,7 @@
 {
-  "editor.codeActionsOnSave": {
-    "source.organizeImports": true,
-    "source.fixAll": true
-  },
-  "eslint.validate": ["typescript"],
+	"editor.codeActionsOnSave": {
+		"source.organizeImports": "always",
+		"source.fixAll": "always"
+	},
+	"eslint.validate": ["typescript"]
 }

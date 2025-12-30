@@ -1,11 +1,11 @@
 // vite.config.ts
-import { defineConfig } from 'vitest/config'
+import { defineConfig } from 'vitest/config';
 
 export default defineConfig({
-  test: {
-    coverage: {
-      provider: 'istanbul', // or 'c8'
-      reporter: ['json-summary', "html"]
-    },
-  },
-})
+	test: {
+		coverage: {
+			provider: 'istanbul', // or 'c8'
+			reporter: ['json-summary', 'html']
+		}
+	}
+});
