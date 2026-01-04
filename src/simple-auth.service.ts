@@ -24,7 +24,8 @@ export class SimpleAuthService {
 	}
 
 	async generateCode(email: string) {
-		const ttl = this.options.ttl;
+		// Convert ttl seconds to miliseconds
+		const ttl = this.options.ttl * 1000;
 		const key = this.keyof(email);
 		let code = await this.cache.get<string>(key);
 
