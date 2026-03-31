@@ -1,55 +1,41 @@
 name: Publish Package to npmjs
+
 on:
   push:
-    branches: master
+    tags:
+      - 'v*'
+
 jobs:
-  build:
+  test:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v3
-      - uses: actions/setup-node@v3
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
         with:
-          node-version: 18
-      - run: yarn
-      - run: yarn lint
-      - run: yarn test
-      - run: yarn build
-      - run: yarn postbuild
-  bump_version:
-    needs: build
-    runs-on: ubuntu-latest
-    outputs:
-      tag_version: ${{ steps.bump.outputs.newTag }}
-    steps:
-      - id: checkout
-        uses: actions/checkout@v3
-      - id: bump
-        uses: 'phips28/gh-action-bump-version@master'
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          version: latest
+      - uses: actions/setup-node@v4
         with:
-          minor-wording: 'add,Adds,new'
-          major-wording: 'MAJOR,cut-major'
-          patch-wording: 'patch,fixes'
-          tag-prefix: 'v'
+          node-version: 22
+          cache: 'pnpm'
+      - run: pnpm install
+      - run: pnpm lint
+      - run: pnpm test
 
   publish:
-    needs: bump_version
+    needs: test
     runs-on: ubuntu-latest
-    env:
-      newTag: ${{ needs.bump_version.outputs.tag_version }}
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
         with:
-          ref: ${{ env.newTag }}
-      # Setup .npmrc file to publish to npm
-      - uses: actions/setup-node@v3
+          version: latest
+      - uses: actions/setup-node@v4
         with:
-          node-version: '18.x'
+          node-version: 22
           registry-url: 'https://registry.npmjs.org'
-      - run: yarn
-      - run: yarn build
-      - run: yarn postbuild
-      - run: yarn publish --access public
+          cache: 'pnpm'
+      - run: pnpm install
+      - run: pnpm build
+      - run: pnpm publish --access public --no-git-checks
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}

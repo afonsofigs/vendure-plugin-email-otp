@@ -1,15 +1,17 @@
 {
-	"name": "@denz93/vendure-plugin-simple-auth",
-	"version": "2.0.0",
-	"description": "Allow customers login using email and verification code (One time login)",
+	"name": "vendure-plugin-email-otp",
+	"version": "3.0.0",
+	"description": "Vendure plugin for passwordless authentication via email OTP (one-time passcode)",
 	"main": "dist/index.js",
-	"author": "Nhan Bach <inbox@nhanbach.dev>",
+	"author": "afonsofigs",
 	"license": "MIT",
 	"keywords": [
 		"vendure",
 		"plugin",
-		"simple-auth",
-		"simple",
+		"otp",
+		"email-otp",
+		"one-time-password",
+		"passwordless",
 		"auth",
 		"vendure-plugin",
 		"vendure.io",
@@ -24,7 +26,7 @@
 		"access": "public"
 	},
 	"repository": {
-		"url": "https://github.com/denz93/vendure-plugin-simple-auth.git",
+		"url": "https://github.com/afonsofigs/vendure-plugin-email-otp.git",
 		"type": "git"
 	},
 	"scripts": {

@@ -1,108 +1,73 @@
-# Simple Auth Plugin for Vendure.io
+# vendure-plugin-email-otp
 
-[![Test CI](https://github.com/denz93/vendure-plugin-simple-auth/actions/workflows/codeql.yml/badge.svg?branch=master)](https://github.com/denz93/vendure-plugin-simple-auth/actions/workflows/codeql.yml)
-[![Publish Package to npmjs](https://github.com/denz93/vendure-plugin-simple-auth/actions/workflows/public-package-npmjs.yml/badge.svg?branch=master&event=push)](https://github.com/denz93/vendure-plugin-simple-auth/actions/workflows/public-package-npmjs.yml)
-[![Coverage](https://denz93.github.io/vendure-plugin-simple-auth/badge.svg)](https://denz93.github.io/vendure-plugin-simple-auth/)
+Vendure plugin for passwordless authentication via email OTP (one-time passcode).
 
-A Vendure plugin allow users log in using email and verification code
+> Fork of [@denz93/vendure-plugin-simple-auth](https://github.com/denz93/vendure-plugin-simple-auth), updated and maintained for Vendure 3.x.
 
 ## Use Case
 
-A lot of times we want visitors (aka customers) to complete their purchase order as quick as possilble. However, they usually hesitate to create a credential to a random online shop at checkout step. So we provide a way to quickly authenticate those visitors by their email and a verification code that is sent to their email.
+Customers often hesitate to create credentials at checkout. This plugin lets them authenticate quickly using just their email and a one-time verification code.
 
 ## What it does
 
-1. Expose a GraphQL Query "`requestOneTimeCode`".
-2. Add an authentication strategy to GraphQL mutation "`authenticate`".
+1. Exposes a GraphQL Query `requestOneTimeCode`
+2. Adds an authentication strategy to the GraphQL mutation `authenticate`
 
----
+## Installation
 
-## How to use
-
-### 1. Install
-
-`yarn add @denz93/vendure-plugin-simple-auth`
+```bash
+npm install vendure-plugin-email-otp
+```
 
 or
 
-`npm i --save @denz93/vendure-plugin-simple-auth`
-
-### 2. Add the plugin to **_vendure-config.ts_** file
-
-```typescript
-import { SimpleAuthPlugin } from "@denz93/vendure-plugin-simple-auth";
-...
-export const config: VendureConfig  = {
- ...
- plugins: [
-   ...
-   SimpleAuthPlugin.init(options) //see Options
- ]
-}
+```bash
+pnpm add vendure-plugin-email-otp
 ```
 
-### 3. Options for `SimpleAuthPlugin.init`
+## Setup
 
-- attempts: `number`
-  > Plugin will invalidate the verification code after user's `attempts`.  
-  > **default**: 5
-- ttl: `number`
-  > Time to live  
-  > How long the verification code is valid for.  
-  > **default**: 600 (seconds)
-- length: `number`
-  > How many digits/alphabets the verification code should be.  
-  > **default**: 6
-- includeAlphabet: `boolean`
-  > Should allow alphabet characters.  
-  > **default**: false (aka `digits only`)
-- isDev: `boolean`
-  > If true, the verification will return along with the response of query. `requestOneTimeCode`.  
-  > It's for debug and testing.  
-  > **default**: false
-- cacheModuleOption: `CacheModuleOption`
-  > By default, the plugin use `"memory"` for caching which is underlying using NestJs CacheModule.  
-  > To change cache store to `Redis`, `MongoDB`, _etc_, please see NestJs CacheModule docs [here](https://docs.nestjs.com/techniques/caching#different-stores).  
-  > You also want to see [here](https://github.com/node-cache-manager/node-cache-manager/tree/4.1.0) from `cache-manager` which is underlying used by NestJs.  
-  > **Note**: should use cache-manager 4.x if using Vendure under 2.x  
-  > **default**: {}
-- checkCrossStrategies: `boolean`
-
-  > Strictly enforce unique email among all strategies
-
-  > For example:
-  - One day, user "John" sign in using Google authentication with "john@gmail.com".
-  - Another day, user "John" sign in using One-time passcode authenication (this plugin) with the same email.
-  - This plugin will throw an error if the flag is enabled.
-
-  > **default**: false.  
-  > **Note**: This only works if Google authentication plugin using email as an identifier
-
-### 4. Add `EmailHandler` to EmailPlugin
-
-\*\* **Note**: Since `v1.3.0` you don't need to config this step anymore. The plugin will automatically append the `handler` to `Email Plugin`
+### 1. Add the plugin to your Vendure config
 
 ```typescript
-// vendure-config.ts
-
-import { oneTimeCodeRequestedEventHandler } from '@denz93/vendure-plugin-simple-auth';
-
-...
+import { SimpleAuthPlugin } from 'vendure-plugin-email-otp';
 
 export const config: VendureConfig = {
-  ...
-
+  // ...
   plugins: [
-    ...
-
-    EmailPlugin.init({
-      ...
-      handlers: [...defaultEmailHandler, oneTimeCodeRequestedEventHandler]
-    })
-  ]
-}
+    // ...
+    SimpleAuthPlugin.init(options), // see Options below
+  ],
+};
 ```
 
-## Future Updates
+### 2. Options for `SimpleAuthPlugin.init`
 
-- [x] Prevent cross authenticate (Ex: users use same email for GoogleAuth and SimpleAuth)
+| Option | Type | Default | Description |
+|--------|------|---------|-------------|
+| `attempts` | `number` | `5` | Max verification attempts before code is invalidated |
+| `ttl` | `number` | `600` (seconds) | How long the verification code is valid |
+| `length` | `number` | `6` | Number of digits/characters in the code |
+| `includeAlphabet` | `boolean` | `false` | Allow alphabet characters (digits only by default) |
+| `isDev` | `boolean` | `false` | If true, returns the code in the `requestOneTimeCode` response (for testing) |
+| `cacheModuleOption` | `CacheModuleOption` | `{}` | Cache store config (memory by default). See [NestJS CacheModule docs](https://docs.nestjs.com/techniques/caching#different-stores) |
+| `preventCrossStrategies` | `boolean` | `false` | Enforce unique email across all auth strategies |
+
+### 3. Email Handler
+
+Since v1.3.0, the plugin automatically registers the email handler with the EmailPlugin. No manual configuration needed.
+
+If you prefer to register it manually:
+
+```typescript
+import { oneTimeCodeRequestedEventHandler } from 'vendure-plugin-email-otp';
+
+EmailPlugin.init({
+  // ...
+  handlers: [...defaultEmailHandler, oneTimeCodeRequestedEventHandler],
+});
+```
+
+## License
+
+MIT - See [LICENSE](LICENSE) for details.
