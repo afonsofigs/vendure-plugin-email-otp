@@ -89,7 +89,7 @@ describe('SimpleAuthPlugin Testing', () => {
 				templatePath: path.join(__dirname, '__data__/email/templates'),
 				handlers: []
 			}),
-			SimpleAuthPlugin.init({ ttl: 60, preventCrossStrategies: true })
+			SimpleAuthPlugin.init({ ttl: 1, preventCrossStrategies: true })
 		]
 	});
 
