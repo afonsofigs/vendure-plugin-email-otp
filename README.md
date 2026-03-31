@@ -33,25 +33,25 @@ pnpm add vendure-plugin-email-otp
 import { SimpleAuthPlugin } from 'vendure-plugin-email-otp';
 
 export const config: VendureConfig = {
-  // ...
-  plugins: [
-    // ...
-    SimpleAuthPlugin.init(options), // see Options below
-  ],
+	// ...
+	plugins: [
+		// ...
+		SimpleAuthPlugin.init(options) // see Options below
+	]
 };
 ```
 
 ### 2. Options for `SimpleAuthPlugin.init`
 
-| Option | Type | Default | Description |
-|--------|------|---------|-------------|
-| `attempts` | `number` | `5` | Max verification attempts before code is invalidated |
-| `ttl` | `number` | `600` (seconds) | How long the verification code is valid |
-| `length` | `number` | `6` | Number of digits/characters in the code |
-| `includeAlphabet` | `boolean` | `false` | Allow alphabet characters (digits only by default) |
-| `isDev` | `boolean` | `false` | If true, returns the code in the `requestOneTimeCode` response (for testing) |
-| `cacheModuleOption` | `CacheModuleOption` | `{}` | Cache store config (memory by default). See [NestJS CacheModule docs](https://docs.nestjs.com/techniques/caching#different-stores) |
-| `preventCrossStrategies` | `boolean` | `false` | Enforce unique email across all auth strategies |
+| Option                   | Type                | Default         | Description                                                                                                                        |
+| ------------------------ | ------------------- | --------------- | ---------------------------------------------------------------------------------------------------------------------------------- |
+| `attempts`               | `number`            | `5`             | Max verification attempts before code is invalidated                                                                               |
+| `ttl`                    | `number`            | `600` (seconds) | How long the verification code is valid                                                                                            |
+| `length`                 | `number`            | `6`             | Number of digits/characters in the code                                                                                            |
+| `includeAlphabet`        | `boolean`           | `false`         | Allow alphabet characters (digits only by default)                                                                                 |
+| `isDev`                  | `boolean`           | `false`         | If true, returns the code in the `requestOneTimeCode` response (for testing)                                                       |
+| `cacheModuleOption`      | `CacheModuleOption` | `{}`            | Cache store config (memory by default). See [NestJS CacheModule docs](https://docs.nestjs.com/techniques/caching#different-stores) |
+| `preventCrossStrategies` | `boolean`           | `false`         | Enforce unique email across all auth strategies                                                                                    |
 
 ### 3. Email Handler
 
@@ -63,8 +63,8 @@ If you prefer to register it manually:
 import { oneTimeCodeRequestedEventHandler } from 'vendure-plugin-email-otp';
 
 EmailPlugin.init({
-  // ...
-  handlers: [...defaultEmailHandler, oneTimeCodeRequestedEventHandler],
+	// ...
+	handlers: [...defaultEmailHandler, oneTimeCodeRequestedEventHandler]
 });
 ```
 
