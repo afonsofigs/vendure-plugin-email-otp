@@ -77,4 +77,13 @@ export interface ISimpleAuthPluginOptions {
 	 * This only works if Google authentication plugin using email as an identifier
 	 */
 	preventCrossStrategies: boolean;
+
+	/**
+	 * @description
+	 * Custom subject line for the one-time code email
+	 *
+	 * @default
+	 * 'One Time Code for website'
+	 */
+	emailSubject: string;
 }
