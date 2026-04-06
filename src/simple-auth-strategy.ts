@@ -1,5 +1,8 @@
 import {
 	AuthenticationStrategy,
+	CustomerEvent,
+	CustomerService,
+	EventBus,
 	ExternalAuthenticationService,
 	Injector,
 	RequestContext,
@@ -18,8 +21,10 @@ export type SimpleAuthData = {
 
 export class SimpleAuthStrategy implements AuthenticationStrategy<SimpleAuthData> {
 	name = STRATEGY_NAME;
-	simpleAuthService: SimpleAuthService;
-	externalAuthenticationService: ExternalAuthenticationService;
+	private simpleAuthService: SimpleAuthService;
+	private externalAuthenticationService: ExternalAuthenticationService;
+	private eventBus: EventBus;
+	private customerService: CustomerService;
 
 	defineInputType(): DocumentNode {
 		return gql`
@@ -52,11 +57,18 @@ export class SimpleAuthStrategy implements AuthenticationStrategy<SimpleAuthData
 			lastName: ''
 		});
 
+		const customer = await this.customerService.findOneByUserId(ctx, user.id);
+		if (customer) {
+			this.eventBus.publish(new CustomerEvent(ctx, customer, 'created'));
+		}
+
 		return user;
 	}
 
 	init(injector: Injector) {
 		this.externalAuthenticationService = injector.get(ExternalAuthenticationService);
 		this.simpleAuthService = injector.get(SimpleAuthService);
+		this.eventBus = injector.get(EventBus);
+		this.customerService = injector.get(CustomerService);
 	}
 }

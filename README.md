@@ -1,5 +1,11 @@
 # vendure-plugin-email-otp
 
+[![npm version](https://img.shields.io/npm/v/vendure-plugin-email-otp.svg)](https://www.npmjs.com/package/vendure-plugin-email-otp)
+[![npm downloads](https://img.shields.io/npm/dm/vendure-plugin-email-otp.svg)](https://www.npmjs.com/package/vendure-plugin-email-otp)
+[![license](https://img.shields.io/npm/l/vendure-plugin-email-otp.svg)](https://github.com/afonsofigs/vendure-plugin-email-otp/blob/main/LICENSE)
+[![vendure version](https://img.shields.io/badge/vendure-%3E%3D3.0.0-blue.svg)](https://www.vendure.io/)
+[![TypeScript](https://img.shields.io/badge/TypeScript-strict-3178c6.svg)](https://www.typescriptlang.org/)
+
 Vendure plugin for passwordless authentication via email OTP (one-time passcode).
 
 > Fork of [@denz93/vendure-plugin-simple-auth](https://github.com/denz93/vendure-plugin-simple-auth), updated and maintained for Vendure 3.x.

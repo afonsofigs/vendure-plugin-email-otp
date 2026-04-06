@@ -223,6 +223,48 @@ describe('SimpleAuthPlugin Testing', () => {
 		});
 	});
 
+	test('should invalidate code after max failed attempts', async () => {
+		SimpleAuthPlugin.options.preventCrossStrategies = false;
+		SimpleAuthPlugin.options.attempts = 3;
+
+		await shopClient.query(REQUEST_ONE_TIME_CODE, { email: TEST_EMAIL });
+		expect(code).toBeTruthy();
+		const correctCode = code;
+
+		// Exhaust all attempts with wrong codes
+		for (let i = 0; i < 3; i++) {
+			const res = await shopClient.query(AUTHENTICATE, { email: TEST_EMAIL, code: 'WRONG!' });
+			expect(res.authenticate.errorCode).toBe('INVALID_CREDENTIALS_ERROR');
+		}
+
+		// Correct code should now fail — code was invalidated
+		const res = await shopClient.query(AUTHENTICATE, { email: TEST_EMAIL, code: correctCode });
+		expect(res.authenticate.errorCode).toBe('INVALID_CREDENTIALS_ERROR');
+	});
+
+	test('should allow new code after previous was invalidated by attempts', async () => {
+		SimpleAuthPlugin.options.preventCrossStrategies = false;
+		SimpleAuthPlugin.options.attempts = 2;
+
+		await shopClient.query(REQUEST_ONE_TIME_CODE, { email: TEST_EMAIL });
+
+		// Exhaust attempts
+		for (let i = 0; i < 2; i++) {
+			await shopClient.query(AUTHENTICATE, { email: TEST_EMAIL, code: 'WRONG!' });
+		}
+
+		// Wait for TTL to expire so a fresh code can be generated
+		await sleep(1100);
+
+		// Request a new code — should work normally
+		await shopClient.query(REQUEST_ONE_TIME_CODE, { email: TEST_EMAIL });
+		const newCode = code;
+		expect(newCode).toBeTruthy();
+
+		const res = await shopClient.query(AUTHENTICATE, { email: TEST_EMAIL, code: newCode });
+		expect(res.authenticate).toMatchObject({ identifier: TEST_EMAIL });
+	}, 5000);
+
 	test('should treat email as case-insensitive', async () => {
 		await shopClient.query(REQUEST_ONE_TIME_CODE, {
 			email: TEST_EMAIL.toUpperCase()

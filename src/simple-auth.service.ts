@@ -23,8 +23,12 @@ export class SimpleAuthService {
 		return `${this.prefix}:${email}`;
 	}
 
+	private attemptsKeyof(email: string) {
+		return `${this.prefix}:attempts:${email}`;
+	}
+
 	async generateCode(email: string) {
-		// Convert ttl seconds to miliseconds
+		// Convert ttl seconds to milliseconds
 		const ttl = this.options.ttl * 1000;
 		const key = this.keyof(email);
 		let code = await this.cache.get<string>(key);
@@ -49,12 +53,34 @@ export class SimpleAuthService {
 
 	async verifyCode(email: string, code: string) {
 		const key = this.keyof(email);
-		const savedCode = await this.cache.get<string>(key);
-		if (typeof savedCode === 'string' && code === savedCode) {
+		const attemptsKey = this.attemptsKeyof(email);
+		const ttl = this.options.ttl * 1000;
+
+		// Check if max attempts reached
+		const attempts = (await this.cache.get<number>(attemptsKey)) ?? 0;
+		if (attempts >= this.options.attempts) {
 			await this.cache.del(key);
-			return true;
+			await this.cache.del(attemptsKey);
+			return false;
 		}
-		return false;
+
+		const savedCode = await this.cache.get<string>(key);
+		if (typeof savedCode !== 'string') {
+			return false;
+		}
+
+		// Timing-safe comparison — guard against different lengths first
+		const codeBuffer = Buffer.from(code);
+		const savedBuffer = Buffer.from(savedCode);
+		if (codeBuffer.length !== savedBuffer.length || !crypto.timingSafeEqual(codeBuffer, savedBuffer)) {
+			await this.cache.set(attemptsKey, attempts + 1, ttl);
+			return false;
+		}
+
+		// Success — clean up both keys
+		await this.cache.del(key);
+		await this.cache.del(attemptsKey);
+		return true;
 	}
 
 	getAllStrategyNames() {

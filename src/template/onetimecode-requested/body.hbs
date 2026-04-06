@@ -1,14 +1,45 @@
 <mjml>
-	<mj-body>
-		<mj-section>
+	<mj-head>
+		<mj-attributes>
+			<mj-all font-family="Helvetica, Arial, sans-serif" />
+			<mj-text font-size="14px" color="#555555" line-height="1.6" />
+		</mj-attributes>
+	</mj-head>
+	<mj-body background-color="#f4f4f5">
+		<mj-section padding="40px 0 20px" />
+
+		<mj-section background-color="#ffffff" border-radius="12px" padding="40px 30px">
 			<mj-column>
+				<mj-text align="center" font-size="18px" font-weight="600" color="#1a1a1a" padding-bottom="8px">
+					Your verification code
+				</mj-text>
+				<mj-text align="center" font-size="13px" color="#888888" padding-bottom="24px">
+					Enter this code to continue
+				</mj-text>
+				<mj-text
+					align="center"
+					font-size="36px"
+					font-weight="700"
+					color="#1a1a1a"
+					font-family="'Courier New', monospace"
+					letter-spacing="8px"
+					padding="20px 0"
+					container-background-color="#f4f4f5"
+					border-radius="8px"
+				>
+					{{code}}
+				</mj-text>
+				<mj-text align="center" font-size="12px" color="#aaaaaa" padding-top="24px">
+					This code will expire shortly. If you did not request this code, you can safely ignore this email.
+				</mj-text>
+			</mj-column>
+		</mj-section>
 
-				<mj-text font-size='20px'>Your one time code</mj-text>
-
-				<mj-divider border-color='#F45E43'></mj-divider>
-
-				<mj-text font-size='15px' color='#F45E43' font-family='helvetica'>{{code}}</mj-text>
-
+		<mj-section padding="20px 0 40px">
+			<mj-column>
+				<mj-text align="center" font-size="11px" color="#aaaaaa">
+					This is an automated message — please do not reply.
+				</mj-text>
 			</mj-column>
 		</mj-section>
 	</mj-body>

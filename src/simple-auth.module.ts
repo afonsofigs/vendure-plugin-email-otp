@@ -7,6 +7,7 @@ import { Inject, OnApplicationBootstrap, OnModuleInit } from '@nestjs/common';
 import { ConfigService, Logger, PluginCommonModule, Type, VendurePlugin } from '@vendure/core';
 import { EmailPlugin, EmailPluginOptions } from '@vendure/email-plugin';
 import { EMAIL_PLUGIN_OPTIONS } from '@vendure/email-plugin/lib/src/constants';
+import fs from 'fs';
 import path from 'path';
 import {
 	DEFAULT_OPTIONS,
@@ -77,22 +78,43 @@ export class SimpleAuthPlugin implements OnApplicationBootstrap, OnModuleInit {
 		/* eslint-disable @typescript-eslint/no-explicit-any */
 		const plugins = this.conf.plugins as Type<any>[];
 		const emailPlugin = plugins.find((plg) => plg == EmailPlugin);
-		if (emailPlugin) {
-			const options = (emailPlugin as any)['options'] as EmailPluginOptions;
-			const templatePath = options.templatePath;
-			if (templatePath) {
-				copyDir(path.join(__dirname, './template/onetimecode-requested'), templatePath);
-				Logger.info(
-					`Template for onetimecode-requested created at ${templatePath}`,
-					SIMPLE_AUTH_PLUGIN_LOG_CONTEXT
-				);
-			}
-		} else {
+		if (!emailPlugin) {
 			Logger.warn(
-				`Cannot find EmailPlugin in Vendure Config. This pluginn might not work correctly."`,
+				'Cannot find EmailPlugin in Vendure Config. This plugin might not work correctly.',
 				SIMPLE_AUTH_PLUGIN_LOG_CONTEXT
 			);
+			return;
 		}
+
+		const options = (emailPlugin as any)['options'] as EmailPluginOptions;
+
+		// Support both legacy templatePath and modern templateLoader
+		let templatePath = options.templatePath;
+		if (!templatePath && options.templateLoader && 'templatePath' in options.templateLoader) {
+			templatePath = (options.templateLoader as any).templatePath;
+		}
+
+		if (!templatePath) {
+			Logger.warn(
+				'Cannot determine email template path from EmailPlugin. ' +
+					'The default OTP email template will not be available. ' +
+					'Ensure your EmailPlugin uses FileBasedTemplateLoader or templatePath.',
+				SIMPLE_AUTH_PLUGIN_LOG_CONTEXT
+			);
+			return;
+		}
+
+		// Create the target directory if it doesn't exist
+		const targetDir = path.join(templatePath, 'onetimecode-requested');
+		if (!fs.existsSync(targetDir)) {
+			fs.mkdirSync(targetDir, { recursive: true });
+		}
+
+		copyDir(path.join(__dirname, './template/onetimecode-requested'), templatePath);
+		Logger.info(
+			`Template for onetimecode-requested available at ${templatePath}`,
+			SIMPLE_AUTH_PLUGIN_LOG_CONTEXT
+		);
 	}
 
 	static options: NonNullable<ISimpleAuthPluginOptions> = DEFAULT_OPTIONS;
