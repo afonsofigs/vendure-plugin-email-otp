@@ -1,4 +1,10 @@
-import { EventBus, ExternalAuthenticationService, NativeAuthenticationMethod } from '@vendure/core';
+import {
+	Customer,
+	EventBus,
+	ExternalAuthenticationService,
+	NativeAuthenticationMethod,
+	TransactionalConnection
+} from '@vendure/core';
 import { EmailPlugin, EmailPluginOptions } from '@vendure/email-plugin';
 import { EMAIL_PLUGIN_OPTIONS } from '@vendure/email-plugin/lib/src/constants';
 import {
@@ -79,7 +85,7 @@ describe('SimpleAuthPlugin Testing', () => {
 		recursive: true
 	});
 
-	const { server, shopClient } = createTestEnvironment({
+	const { server, shopClient, adminClient } = createTestEnvironment({
 		...testConfig,
 		plugins: [
 			EmailPlugin.init({
@@ -360,6 +366,130 @@ describe('SimpleAuthPlugin Testing', () => {
 		});
 		expect(res.requestOneTimeCode).toMatchObject({
 			value: code
+		});
+	});
+
+	describe('guest Customers', () => {
+		const CREATE_CUSTOMER = gql(`
+			mutation createCustomer($email: String!) {
+				createCustomer(input: { emailAddress: $email, firstName: "Has", lastName: "Account" }, password: "secret123") {
+					...on Customer { id }
+					...on ErrorResult { errorCode message }
+				}
+			}
+		`);
+
+		/**
+		 * What a guest checkout leaves behind: a Customer in the default Channel, without a User.
+		 * Written directly, because the shop refuses a guest checkout for an email with an account.
+		 */
+		async function guestCheckout(guestEmail: string, firstName = 'Guest') {
+			const connection = server.app.get(TransactionalConnection);
+			const guest = await connection.rawConnection
+				.getRepository(Customer)
+				.save(new Customer({ emailAddress: guestEmail, firstName, lastName: 'Buyer' }));
+			await connection.rawConnection
+				.createQueryBuilder()
+				.relation(Customer, 'channels')
+				.of(guest.id)
+				.add(1);
+			return String(guest.id);
+		}
+
+		async function login(loginEmail: string) {
+			await shopClient.asAnonymousUser();
+			await shopClient.query(REQUEST_ONE_TIME_CODE, { email: loginEmail });
+			return shopClient.query(AUTHENTICATE, { email: loginEmail, code });
+		}
+
+		async function customersOf(customerEmail: string) {
+			const connection = server.app.get(TransactionalConnection);
+			const rows = await connection.rawConnection
+				.getRepository(Customer)
+				.createQueryBuilder('customer')
+				.leftJoinAndSelect('customer.user', 'user')
+				.where('LOWER(customer.emailAddress) = :email', { email: customerEmail })
+				.andWhere('customer.deletedAt IS NULL')
+				.orderBy('customer.id', 'ASC')
+				.getMany();
+			return rows.map((c) => ({ id: String(c.id), firstName: c.firstName, user: c.user?.id }));
+		}
+
+		test('the first login gives the account to the guest Customer', async () => {
+			const hook = vi.fn();
+			SimpleAuthPlugin.options.onGuestCustomerLinked = hook;
+			const guestId = await guestCheckout('guest-one@gmail.com');
+
+			const res = await login('guest-one@gmail.com');
+			expect(res.authenticate).toMatchObject({ identifier: 'guest-one@gmail.com' });
+
+			const customers = await customersOf('guest-one@gmail.com');
+			expect(customers).toHaveLength(1);
+			expect(customers[0]).toMatchObject({ id: guestId, firstName: 'Guest' });
+			expect(customers[0].user).toBeTruthy();
+			expect(hook).toHaveBeenCalledTimes(1);
+			expect(String(hook.mock.calls[0][1].id)).toBe(guestId);
+
+			// The next login finds the same account, and does not link again.
+			await login('guest-one@gmail.com');
+			expect(await customersOf('guest-one@gmail.com')).toHaveLength(1);
+			expect(hook).toHaveBeenCalledTimes(1);
+			SimpleAuthPlugin.options.onGuestCustomerLinked = undefined;
+		});
+
+		test('the guest is found whatever the case of the email', async () => {
+			const guestId = await guestCheckout('Guest.Two@Gmail.com');
+
+			await login('guest.two@gmail.com');
+
+			const customers = await customersOf('guest.two@gmail.com');
+			expect(customers).toHaveLength(1);
+			expect(customers[0].id).toBe(guestId);
+			expect(customers[0].user).toBeTruthy();
+		});
+
+		test('with linkGuestCustomers off, the login creates a second Customer', async () => {
+			SimpleAuthPlugin.options.linkGuestCustomers = false;
+			const guestId = await guestCheckout('guest-three@gmail.com');
+
+			await login('guest-three@gmail.com');
+
+			const customers = await customersOf('guest-three@gmail.com');
+			expect(customers).toHaveLength(2);
+			expect(customers[0]).toMatchObject({ id: guestId, user: undefined });
+			expect(customers[1].user).toBeTruthy();
+		});
+
+		test('a deleted guest is left alone', async () => {
+			const guestId = await guestCheckout('guest-four@gmail.com');
+			const connection = server.app.get(TransactionalConnection);
+			await connection.rawConnection
+				.getRepository(Customer)
+				.update({ id: guestId }, { deletedAt: new Date() });
+
+			await login('guest-four@gmail.com');
+
+			const customers = await customersOf('guest-four@gmail.com');
+			expect(customers).toHaveLength(1);
+			expect(customers[0].id).not.toBe(guestId);
+		});
+
+		test('a Customer with an account wins over a guest with the same email', async () => {
+			// The account is a native one, which the cross-strategy check would refuse.
+			SimpleAuthPlugin.options.preventCrossStrategies = false;
+			await adminClient.asSuperAdmin();
+			const created = await adminClient.query(CREATE_CUSTOMER, { email: 'guest-five@gmail.com' });
+			expect(created.createCustomer.id).toBeTruthy();
+			const guestId = await guestCheckout('guest-five@gmail.com', 'Old');
+
+			const res = await login('guest-five@gmail.com');
+			expect(res.authenticate).toMatchObject({ identifier: 'guest-five@gmail.com' });
+
+			const customers = await customersOf('guest-five@gmail.com');
+			expect(customers).toHaveLength(2);
+			// The Admin API ids carry the test prefix, so the account is found by its name.
+			expect(customers.find((c) => c.firstName === 'Has')?.user).toBeTruthy();
+			expect(customers.find((c) => c.id === guestId)?.user).toBeUndefined();
 		});
 	});
 

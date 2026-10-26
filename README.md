@@ -37,26 +37,28 @@ import KeyvRedis from '@keyv/redis';
 const keyvRedis = new KeyvRedis('redis://localhost:6379');
 
 export const config: VendureConfig = {
-  plugins: [
-    EmailPlugin.init({
-      handlers: defaultEmailHandlers,
-      transport: { /* your SMTP config */ },
-      templateLoader: new FileBasedTemplateLoader(
-        path.join(__dirname, '../static/email/templates')
-      ),
-      globalTemplateVars: {
-        fromAddress: '"My Store" <noreply@mystore.com>',
-      },
-    }),
+	plugins: [
+		EmailPlugin.init({
+			handlers: defaultEmailHandlers,
+			transport: {
+				/* your SMTP config */
+			},
+			templateLoader: new FileBasedTemplateLoader(
+				path.join(__dirname, '../static/email/templates')
+			),
+			globalTemplateVars: {
+				fromAddress: '"My Store" <noreply@mystore.com>'
+			}
+		}),
 
-    SimpleAuthPlugin.init({
-      ttl: 900, // code valid for 15 minutes
-      cacheModuleOption: {
-        stores: [keyvRedis],
-      },
-      emailSubject: 'Your access code — My Store',
-    }),
-  ],
+		SimpleAuthPlugin.init({
+			ttl: 900, // code valid for 15 minutes
+			cacheModuleOption: {
+				stores: [keyvRedis]
+			},
+			emailSubject: 'Your access code — My Store'
+		})
+	]
 };
 ```
 
@@ -111,15 +113,15 @@ Example using MJML (with optional header/footer partials):
 
 ```graphql
 query {
-  requestOneTimeCode(email: "customer@example.com") {
-    ... on OneTimeCode {
-      value   # "A code sent to your email" (or the actual code if isDev: true)
-    }
-    ... on RequestOneTimeCodeError {
-      errorCode
-      message
-    }
-  }
+	requestOneTimeCode(email: "customer@example.com") {
+		... on OneTimeCode {
+			value # "A code sent to your email" (or the actual code if isDev: true)
+		}
+		... on RequestOneTimeCodeError {
+			errorCode
+			message
+		}
+	}
 }
 ```
 
@@ -127,40 +129,47 @@ query {
 
 ```graphql
 mutation {
-  authenticate(input: {
-    simple: {
-      email: "customer@example.com"
-      code: "384721"
-    }
-  }) {
-    ... on CurrentUser {
-      id
-      identifier
-    }
-    ... on ErrorResult {
-      errorCode
-      message
-    }
-  }
+	authenticate(input: { simple: { email: "customer@example.com", code: "384721" } }) {
+		... on CurrentUser {
+			id
+			identifier
+		}
+		... on ErrorResult {
+			errorCode
+			message
+		}
+	}
 }
 ```
 
 If the email doesn't match any existing customer, a new customer account is created automatically.
 
+If the email belongs to a guest customer (one created by a guest checkout, without an account), the first login gives the account to that guest customer, so their past orders stay theirs. Turn this off with `linkGuestCustomers: false`, and use `onGuestCustomerLinked` to run your own step when it happens:
+
+```ts
+SimpleAuthPlugin.init({
+	onGuestCustomerLinked: async (ctx, customer, injector) => {
+		// Runs inside the login request, before `authenticate` returns.
+	}
+});
+```
+
 ## Options
 
 All options are optional — defaults are shown below.
 
-| Option                   | Type                | Default                        | Description                                                                                     |
-| ------------------------ | ------------------- | ------------------------------ | ----------------------------------------------------------------------------------------------- |
-| `ttl`                    | `number`            | `600`                          | Code validity in seconds                                                                        |
-| `length`                 | `number`            | `6`                            | Number of digits/characters in the code                                                         |
-| `attempts`               | `number`            | `5`                            | Max verification attempts before the code is invalidated                                        |
-| `includeAlphabet`        | `boolean`           | `false`                        | Include letters in the code (digits only by default)                                            |
-| `isDev`                  | `boolean`           | `false`                        | Return the actual code in the `requestOneTimeCode` response (for development/testing)           |
-| `emailSubject`           | `string`            | `'One Time Code for website'`  | Subject line of the OTP email                                                                   |
-| `cacheModuleOption`      | `CacheModuleOption` | `{}`                           | Cache store config — memory by default, pass a Redis/Keyv store for production                  |
-| `preventCrossStrategies` | `boolean`           | `false`                        | Reject login if the email is already registered with a different auth strategy (e.g. Google)    |
+| Option                   | Type                | Default                       | Description                                                                                     |
+| ------------------------ | ------------------- | ----------------------------- | ----------------------------------------------------------------------------------------------- |
+| `ttl`                    | `number`            | `600`                         | Code validity in seconds                                                                        |
+| `length`                 | `number`            | `6`                           | Number of digits/characters in the code                                                         |
+| `attempts`               | `number`            | `5`                           | Max verification attempts before the code is invalidated                                        |
+| `includeAlphabet`        | `boolean`           | `false`                       | Include letters in the code (digits only by default)                                            |
+| `isDev`                  | `boolean`           | `false`                       | Return the actual code in the `requestOneTimeCode` response (for development/testing)           |
+| `emailSubject`           | `string`            | `'One Time Code for website'` | Subject line of the OTP email                                                                   |
+| `cacheModuleOption`      | `CacheModuleOption` | `{}`                          | Cache store config — memory by default, pass a Redis/Keyv store for production                  |
+| `preventCrossStrategies` | `boolean`           | `false`                       | Reject login if the email is already registered with a different auth strategy (e.g. Google)    |
+| `linkGuestCustomers`     | `boolean`           | `true`                        | On the first login, give the account to the oldest guest customer with the same email           |
+| `onGuestCustomerLinked`  | `function`          | none                          | `(ctx, customer, injector)`, called in the login request after a guest customer gets an account |
 
 ## Requirements
 

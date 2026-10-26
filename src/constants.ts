@@ -16,7 +16,8 @@ export const DEFAULT_OPTIONS: ISimpleAuthPluginOptions = {
 	includeAlphabet: false,
 	cacheModuleOption: {},
 	preventCrossStrategies: false,
-	emailSubject: 'One Time Code for website'
+	emailSubject: 'One Time Code for website',
+	linkGuestCustomers: true
 };
 
 export const STRATEGY_NAME = 'simple';
